@@ -1,7 +1,7 @@
 {
-  "name": "ts-proto-type-only",
+  "name": "proto-to-ts-type",
   "version": "1.0.0",
-  "description": "ts-proto-type-only",
+  "description": "proto-to-ts-type",
   "author": "Yoshinari-Yamanaka",
   "license": "MIT",
   "private": true,
