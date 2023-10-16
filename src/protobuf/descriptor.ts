@@ -107,9 +107,9 @@ export interface FileDescriptorSet {
 /** Describes a complete .proto file. */
 export interface FileDescriptorProto {
   /** file name, relative to root of source tree */
-  name: string;
+  name?: string;
   /** e.g. "foo", "foo.bar", etc. */
-  package: string;
+  package?: string;
   /** Names of files imported by this file. */
   dependency: string[];
   /** Indexes of the public imported files in the dependency list above. */
@@ -142,7 +142,7 @@ export interface FileDescriptorProto {
    *
    * If `edition` is present, this value must be "editions".
    */
-  syntax: string;
+  syntax?: string;
   /** The edition of the proto file. */
   edition: Edition;
 }
@@ -1950,10 +1950,10 @@ function createBaseFileDescriptorProto(): FileDescriptorProto {
 
 export const FileDescriptorProto = {
   encode(message: FileDescriptorProto, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.name !== "") {
+    if (message.name && message.name !== "") {
       writer.uint32(10).string(message.name);
     }
-    if (message.package !== "") {
+    if (message.package && message.package !== "") {
       writer.uint32(18).string(message.package);
     }
     for (const v of message.dependency) {
@@ -1987,7 +1987,7 @@ export const FileDescriptorProto = {
     if (message.source_code_info !== undefined) {
       SourceCodeInfo.encode(message.source_code_info, writer.uint32(74).fork()).ldelim();
     }
-    if (message.syntax !== "") {
+    if (message.syntax && message.syntax !== "") {
       writer.uint32(98).string(message.syntax);
     }
     if (message.edition !== 0) {

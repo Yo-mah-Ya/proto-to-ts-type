@@ -19,7 +19,7 @@ const main = async (): Promise<void> => {
       async (
         fileDescriptor: FileDescriptorProto
       ): Promise<{ name: string; content: string }> => ({
-        name: fileDescriptor.name.replace(".proto", ".ts"),
+        name: fileDescriptor?.name?.replace(".proto", ".ts") ?? "",
         content: await generateFile(fileDescriptor, options),
       })
     )
