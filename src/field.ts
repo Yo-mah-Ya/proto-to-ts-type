@@ -1,9 +1,13 @@
+import type { Option } from "./option";
 import {
   FieldDescriptorProto,
   FileDescriptorProto,
 } from "./protobuf/descriptor";
 
-export const messageOrEnumWithPackages = new Map<string, string[]>();
+const messageOrEnumWithPackages = new Map<string, string[]>();
+export const getMessageOrEnumWithPackages = (
+  key: string
+): string[] | undefined => messageOrEnumWithPackages.get(key);
 
 export const getMessageOrEnumName = (
   fieldDescriptor: FieldDescriptorProto,
@@ -24,3 +28,9 @@ export const getMessageOrEnumName = (
   }
   return typeName;
 };
+
+export const getFieldName = (
+  fieldDescriptor: FieldDescriptorProto,
+  options: Option
+): string =>
+  options.useJsonName ? fieldDescriptor.json_name : fieldDescriptor.name;

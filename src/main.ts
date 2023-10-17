@@ -4,7 +4,7 @@ import {
   FieldDescriptorProto,
   FileDescriptorProto,
 } from "./protobuf/descriptor";
-import { messageOrEnumWithPackages } from "./field";
+import { getFieldName, getMessageOrEnumWithPackages } from "./field";
 import { toTypeName } from "./types";
 import { EOL } from "os";
 import prettier from "prettier";
@@ -14,21 +14,58 @@ import path from "path";
 import { removeFileExtension } from "./util";
 
 const createField = (
-  fileDescriptor: FileDescriptorProto,
-  fieldDescriptor: FieldDescriptorProto,
+  {
+    fileDescriptor,
+    fieldDescriptor,
+  }: {
+    fileDescriptor: FileDescriptorProto;
+    fieldDescriptor: FieldDescriptorProto;
+  },
   options: Option
 ): string => {
   const comment = comments(fieldDescriptor.options?.deprecated);
   const fieldType = toTypeName(fieldDescriptor, fileDescriptor);
-  const fieldName = options.useJsonName
-    ? fieldDescriptor.json_name
-    : fieldDescriptor.name;
+  const fieldName = getFieldName(fieldDescriptor, options);
   return `${comment}readonly ${fieldName}?: ${fieldType};`;
 };
 
+const createOneOfField = (
+  {
+    fileDescriptor,
+    descriptorProto,
+    oneOfIndex,
+  }: {
+    fileDescriptor: FileDescriptorProto;
+    descriptorProto: DescriptorProto;
+    oneOfIndex: number;
+  },
+  options: Option
+): string => {
+  const fields = descriptorProto.field.filter(
+    (field) => field.oneof_index === oneOfIndex
+  );
+  const unionType = fields
+    .map((f) => {
+      const fieldName = getFieldName(f, options);
+      const field = createField(
+        {
+          fileDescriptor,
+          fieldDescriptor: f,
+        },
+        options
+      );
+      return `{ readonly $oneOfField: '${fieldName}', ${field} }`;
+    })
+    .join(" | ");
+  const oneOfName = descriptorProto.oneof_decl[oneOfIndex].name;
+  return `readonly ${oneOfName}: ${unionType}`;
+};
+
 export const generateMessage = (
-  fileDescriptor: FileDescriptorProto,
-  descriptorProto: DescriptorProto,
+  {
+    fileDescriptor,
+    descriptorProto,
+  }: { fileDescriptor: FileDescriptorProto; descriptorProto: DescriptorProto },
   options: Option
 ): string => {
   const chunks: string[] = [];
@@ -37,12 +74,33 @@ export const generateMessage = (
   }
   for (const nestedDescriptorProto of descriptorProto.nested_type) {
     chunks.push(
-      generateMessage(fileDescriptor, nestedDescriptorProto, options)
+      generateMessage(
+        {
+          fileDescriptor,
+          descriptorProto: nestedDescriptorProto,
+        },
+        options
+      )
     );
   }
-  const literalNode = descriptorProto.field.map((fieldDescriptor) =>
-    createField(fileDescriptor, fieldDescriptor, options)
-  );
+
+  const processedOneOfIndex = new Set<number>();
+
+  const literalNode = descriptorProto.field.map((fieldDescriptor) => {
+    const oneOfIndex = fieldDescriptor.oneof_index;
+    if (
+      typeof oneOfIndex === "number" &&
+      !fieldDescriptor.proto3_optional &&
+      !processedOneOfIndex.has(oneOfIndex)
+    ) {
+      processedOneOfIndex.add(oneOfIndex);
+      return createOneOfField(
+        { fileDescriptor, descriptorProto, oneOfIndex },
+        options
+      );
+    }
+    return createField({ fileDescriptor, fieldDescriptor }, options);
+  });
 
   const comment = comments(descriptorProto.options?.deprecated);
   if (literalNode.length) {
@@ -85,7 +143,13 @@ export const generateFile = (
     generateEnum(enumDescriptor, options)
   );
   const messages = fileDescriptor.message_type.flatMap((messageDescriptor) =>
-    generateMessage(fileDescriptor, messageDescriptor, options)
+    generateMessage(
+      {
+        fileDescriptor,
+        descriptorProto: messageDescriptor,
+      },
+      options
+    )
   );
 
   statements.push(
@@ -94,7 +158,7 @@ export const generateFile = (
         if (!fileDescriptor.name) return;
         if (!fileDescriptor?.package) return;
 
-        const types = messageOrEnumWithPackages.get(fileDescriptor.package);
+        const types = getMessageOrEnumWithPackages(fileDescriptor.package);
         if (!types?.length) return;
         return `import {${types.join(", ")}} from "${path.relative(
           path.dirname(fileDescriptor.name),
