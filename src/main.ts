@@ -8,17 +8,21 @@ import { toTypeName } from "./field";
 import { EOL } from "os";
 import prettier from "prettier";
 import type { Option } from "./option";
+import { comments } from "./comments";
+import path from "path";
+import { removeFileExtension } from "./util";
 
 const createField = (
   fileDescriptor: FileDescriptorProto,
   fieldDescriptor: FieldDescriptorProto,
   options: Option
 ): string => {
+  const comment = comments(fieldDescriptor.options?.deprecated);
   const fieldType = toTypeName(fieldDescriptor, fileDescriptor);
   const fieldName = options.useJsonName
     ? fieldDescriptor.json_name
     : fieldDescriptor.name;
-  return `readonly ${fieldName}?: ${fieldType};`;
+  return `${comment}readonly ${fieldName}?: ${fieldType};`;
 };
 
 export const generateMessage = (
@@ -38,12 +42,16 @@ export const generateMessage = (
   const literalNode = descriptorProto.field.map((fieldDescriptor) =>
     createField(fileDescriptor, fieldDescriptor, options)
   );
+
+  const comment = comments(descriptorProto.options?.deprecated);
   if (literalNode.length) {
     chunks.push(
-      `export type ${descriptorProto.name} = {${literalNode.join(EOL)}};`
+      `${comment}export type ${descriptorProto.name} = {${literalNode.join(
+        EOL
+      )}};`
     );
   } else {
-    chunks.push(`export interface ${descriptorProto.name}{};`);
+    chunks.push(`${comment}export interface ${descriptorProto.name}{};`);
   }
   return chunks.join(EOL);
 };
@@ -52,17 +60,18 @@ export const generateEnum = (
   enumDescriptor: EnumDescriptorProto,
   options: Option
 ): string => {
+  const comment = comments(enumDescriptor.options?.deprecated);
   const members = enumDescriptor.value
     .map((enumValueDescriptor) => {
-      enumValueDescriptor.options;
-      return `${enumValueDescriptor.name} = ${
+      const comment = comments(enumValueDescriptor.options?.deprecated);
+      return `${comment}${enumValueDescriptor.name} = ${
         options.enumValueAsString
           ? `"${enumValueDescriptor.name}"`
           : enumValueDescriptor.number
       }`;
     })
     .join(",");
-  return `export enum ${enumDescriptor.name} {${members}};`;
+  return `${comment}export enum ${enumDescriptor.name} {${members}};`;
 };
 
 export const generateFile = (
@@ -75,9 +84,21 @@ export const generateFile = (
   }
   if (fileDescriptor.package) {
     statements.push(
-      `export const protobufPackage = "${fileDescriptor.package}";`
+      `export const protocolBufferPackage = "${fileDescriptor.package}";`
     );
   }
+  statements.push(
+    fileDescriptor.dependency
+      .map((dependency) => {
+        if (!fileDescriptor.name) return;
+        return `import "${path.relative(
+          path.dirname(fileDescriptor.name),
+          removeFileExtension(dependency, "")
+        )}"`;
+      })
+      .join(EOL)
+  );
+
   statements.push(
     ...fileDescriptor.enum_type.flatMap((enumDescriptor) =>
       generateEnum(enumDescriptor, options)
