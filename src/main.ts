@@ -21,7 +21,7 @@ const createField = (
     fileDescriptor: FileDescriptorProto;
     fieldDescriptor: FieldDescriptorProto;
   },
-  options: Option
+  options: Option,
 ): string => {
   const comment = comments(fieldDescriptor.options?.deprecated);
   const fieldType = toTypeName(fieldDescriptor, fileDescriptor);
@@ -39,10 +39,10 @@ const createOneOfField = (
     descriptorProto: DescriptorProto;
     oneOfIndex: number;
   },
-  options: Option
+  options: Option,
 ): string => {
   const fields = descriptorProto.field.filter(
-    (field) => field.oneof_index === oneOfIndex
+    (field) => field.oneof_index === oneOfIndex,
   );
   const unionType = fields
     .map((f) => {
@@ -52,7 +52,7 @@ const createOneOfField = (
           fileDescriptor,
           fieldDescriptor: f,
         },
-        options
+        options,
       );
       return `{ readonly $oneOfField: '${fieldName}', ${field} }`;
     })
@@ -66,7 +66,7 @@ export const generateMessage = (
     fileDescriptor,
     descriptorProto,
   }: { fileDescriptor: FileDescriptorProto; descriptorProto: DescriptorProto },
-  options: Option
+  options: Option,
 ): string => {
   const chunks: string[] = [];
   for (const enumDescriptorProto of descriptorProto.enum_type) {
@@ -79,8 +79,8 @@ export const generateMessage = (
           fileDescriptor,
           descriptorProto: nestedDescriptorProto,
         },
-        options
-      )
+        options,
+      ),
     );
   }
 
@@ -96,7 +96,7 @@ export const generateMessage = (
       processedOneOfIndex.add(oneOfIndex);
       return createOneOfField(
         { fileDescriptor, descriptorProto, oneOfIndex },
-        options
+        options,
       );
     }
     return createField({ fileDescriptor, fieldDescriptor }, options);
@@ -107,7 +107,7 @@ export const generateMessage = (
     chunks.push(
       `${comment}export type ${
         descriptorProto.name
-      } = {${EOL}${literalNode.join(EOL)}${EOL}};`
+      } = {${EOL}${literalNode.join(EOL)}${EOL}};`,
     );
   } else {
     chunks.push(`${comment}export interface ${descriptorProto.name}{${EOL}};`);
@@ -117,7 +117,7 @@ export const generateMessage = (
 
 export const generateEnum = (
   enumDescriptor: EnumDescriptorProto,
-  options: Option
+  options: Option,
 ): string => {
   const comment = comments(enumDescriptor.options?.deprecated);
   const members = enumDescriptor.value
@@ -135,12 +135,12 @@ export const generateEnum = (
 
 export const generateFile = (
   fileDescriptor: FileDescriptorProto,
-  options: Option
+  options: Option,
 ): Promise<string> => {
   const statements: string[] = ["/* eslint-disable */"];
 
   const enums = fileDescriptor.enum_type.flatMap((enumDescriptor) =>
-    generateEnum(enumDescriptor, options)
+    generateEnum(enumDescriptor, options),
   );
   const messages = fileDescriptor.message_type.flatMap((messageDescriptor) =>
     generateMessage(
@@ -148,8 +148,8 @@ export const generateFile = (
         fileDescriptor,
         descriptorProto: messageDescriptor,
       },
-      options
-    )
+      options,
+    ),
   );
 
   statements.push(
@@ -162,10 +162,10 @@ export const generateFile = (
         if (!types?.length) return;
         return `import {${types.join(", ")}} from "${path.relative(
           path.dirname(fileDescriptor.name),
-          removeFileExtension(dependency, "")
+          removeFileExtension(dependency, ""),
         )}";`;
       })
-      .join(EOL)
+      .join(EOL),
   );
 
   if (fileDescriptor.syntax) {
@@ -173,7 +173,7 @@ export const generateFile = (
   }
   if (fileDescriptor.package) {
     statements.push(
-      `export const protocolBufferPackage = "${fileDescriptor.package}";`
+      `export const protocolBufferPackage = "${fileDescriptor.package}";`,
     );
   }
 

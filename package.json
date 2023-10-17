@@ -8,6 +8,9 @@
   "scripts": {
     "build": "tsc -b && ./post_build.sh",
     "test": "jest --coverage --passWithNoTests --maxWorkers=7",
+    "lint": "yarn eslint && yarn prettier",
+    "eslint": "eslint --fix './**/*.{ts,tsx}'",
+    "prettier": "prettier --write './**/*.{ts,js,md}'",
     "proto": "yarn proto:descriptor && yarn proto:plugin",
     "proto:descriptor": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=. src/protobuf/descriptor.proto",
     "proto:plugin": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=. src/protobuf/plugin.proto"

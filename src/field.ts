@@ -6,7 +6,7 @@ import {
 
 const messageOrEnumWithPackages = new Map<string, string[]>();
 export const getMessageOrEnumWithPackages = (
-  key: string
+  key: string,
 ): string[] | undefined => messageOrEnumWithPackages.get(key);
 
 export const getMessageOrEnumName = ({
@@ -35,6 +35,6 @@ export const getMessageOrEnumName = ({
 
 export const getFieldName = (
   fieldDescriptor: FieldDescriptorProto,
-  options: Option
+  options: Option,
 ): string =>
   options.useJsonName ? fieldDescriptor.json_name : fieldDescriptor.name;

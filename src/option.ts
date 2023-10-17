@@ -22,7 +22,7 @@ export const toOptions = (parameters: string): Option => {
     if (typeof value !== "string") {
       console.warn(
         `Unknown option: ${key}=${value ?? ""}${EOL}`,
-        'The pairs of key and value are supposed to be delimited by equal sign "=".'
+        'The pairs of key and value are supposed to be delimited by equal sign "=".',
       );
       continue;
     }
@@ -40,7 +40,7 @@ export const toOptions = (parameters: string): Option => {
           defaultOption.enumValueAsString = "true" === value;
         } else {
           console.warn(
-            '"enumValueAsString" option must be either "true" or "false"'
+            '"enumValueAsString" option must be either "true" or "false"',
           );
         }
         continue;

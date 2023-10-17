@@ -4,7 +4,7 @@
   },
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "project": "./tsconfig.json"
+    "project": "./tsconfig.test.json"
   },
   "ignorePatterns": ["build", "jest.config.js", "src/protobuf/*.ts"],
   "plugins": ["@typescript-eslint"],

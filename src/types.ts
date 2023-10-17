@@ -17,7 +17,7 @@ export const isRepeated = (fieldDescriptor: FieldDescriptorProto): boolean =>
 
 export const toTypeName = (
   fieldDescriptor: FieldDescriptorProto,
-  fileDescriptorProto: FileDescriptorProto
+  fileDescriptorProto: FileDescriptorProto,
 ): string => {
   switch (fieldDescriptor.type) {
     case FieldDescriptorProto_Type.TYPE_DOUBLE:

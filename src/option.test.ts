@@ -11,7 +11,7 @@ describe(toOptions, () => {
     test("delimited by other than comma", () => {
       const warnLog = jest.spyOn(console, "warn");
       expect(
-        toOptions("useJsonName=true:enumValueAsString=true")
+        toOptions("useJsonName=true:enumValueAsString=true"),
       ).toStrictEqual({
         useJsonName: false,
         enumValueAsString: false,
@@ -40,16 +40,16 @@ describe(toOptions, () => {
   test("enumValueAsString", () => {
     expect(toOptions("enumValueAsString=false")).toHaveProperty(
       "enumValueAsString",
-      false
+      false,
     );
     expect(toOptions("enumValueAsString=true")).toHaveProperty(
       "enumValueAsString",
-      true
+      true,
     );
     const warnLog = jest.spyOn(console, "warn");
     expect(toOptions("enumValueAsString=dummy")).toHaveProperty(
       "enumValueAsString",
-      false
+      false,
     );
     expect(warnLog).toHaveBeenCalled();
   });
