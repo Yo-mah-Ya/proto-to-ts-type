@@ -43,17 +43,17 @@ export const toTypeName = (
     case FieldDescriptorProto_Type.TYPE_GROUP:
     case FieldDescriptorProto_Type.TYPE_ENUM:
     case FieldDescriptorProto_Type.TYPE_MESSAGE: {
-      const typeName = getMessageOrEnumName(
+      const typeName = getMessageOrEnumName({
         fieldDescriptor,
-        fileDescriptorProto
-      );
+        fileDescriptorProto,
+      });
       return isRepeated(fieldDescriptor) ? `${typeName}[]` : typeName;
     }
     default: {
-      const typeName = getMessageOrEnumName(
+      const typeName = getMessageOrEnumName({
         fieldDescriptor,
-        fileDescriptorProto
-      );
+        fileDescriptorProto,
+      });
       return isRepeated(fieldDescriptor) ? `${typeName}[]` : typeName;
     }
   }

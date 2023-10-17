@@ -9,10 +9,13 @@ export const getMessageOrEnumWithPackages = (
   key: string
 ): string[] | undefined => messageOrEnumWithPackages.get(key);
 
-export const getMessageOrEnumName = (
-  fieldDescriptor: FieldDescriptorProto,
-  fileDescriptorProto: FileDescriptorProto
-): string => {
+export const getMessageOrEnumName = ({
+  fieldDescriptor,
+  fileDescriptorProto,
+}: {
+  fieldDescriptor: Pick<FieldDescriptorProto, "type_name">;
+  fileDescriptorProto: Pick<FileDescriptorProto, "package">;
+}): string => {
   const typeName = fieldDescriptor.type_name.split(".").slice(-1).join("");
   if (
     // Type name is defined in an other package/file. So we need to import the type from there.
@@ -20,11 +23,12 @@ export const getMessageOrEnumName = (
     !fieldDescriptor.type_name.startsWith(`.${fileDescriptorProto?.package}`) &&
     fileDescriptorProto?.package
   ) {
-    const map = messageOrEnumWithPackages.get(fileDescriptorProto.package);
-    if (!map) {
+    const get = (): string[] | undefined =>
+      messageOrEnumWithPackages.get(fileDescriptorProto.package as string);
+    if (!get()) {
       messageOrEnumWithPackages.set(fileDescriptorProto.package, []);
     }
-    map?.push(typeName);
+    get()?.push(typeName);
   }
   return typeName;
 };
