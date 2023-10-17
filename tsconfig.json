@@ -30,5 +30,5 @@
     "strictPropertyInitialization": false,
     "target": "ESNext"
   },
-  "exclude": ["build", "coverage", "jest.config.js"]
+  "exclude": ["build", "coverage", "./**/*.test.ts", "jest.config.js"]
 }

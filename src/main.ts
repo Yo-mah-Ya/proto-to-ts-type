@@ -4,7 +4,8 @@ import {
   FieldDescriptorProto,
   FileDescriptorProto,
 } from "./protobuf/descriptor";
-import { toTypeName } from "./field";
+import { messageOrEnumWithPackages } from "./field";
+import { toTypeName } from "./types";
 import { EOL } from "os";
 import prettier from "prettier";
 import type { Option } from "./option";
@@ -46,12 +47,12 @@ export const generateMessage = (
   const comment = comments(descriptorProto.options?.deprecated);
   if (literalNode.length) {
     chunks.push(
-      `${comment}export type ${descriptorProto.name} = {${literalNode.join(
-        EOL
-      )}};`
+      `${comment}export type ${
+        descriptorProto.name
+      } = {${EOL}${literalNode.join(EOL)}${EOL}};`
     );
   } else {
-    chunks.push(`${comment}export interface ${descriptorProto.name}{};`);
+    chunks.push(`${comment}export interface ${descriptorProto.name}{${EOL}};`);
   }
   return chunks.join(EOL);
 };
@@ -71,7 +72,7 @@ export const generateEnum = (
       }`;
     })
     .join(",");
-  return `${comment}export enum ${enumDescriptor.name} {${members}};`;
+  return `${comment}export enum ${enumDescriptor.name} {${EOL}${members}${EOL}};`;
 };
 
 export const generateFile = (
@@ -79,6 +80,30 @@ export const generateFile = (
   options: Option
 ): Promise<string> => {
   const statements: string[] = ["/* eslint-disable */"];
+
+  const enums = fileDescriptor.enum_type.flatMap((enumDescriptor) =>
+    generateEnum(enumDescriptor, options)
+  );
+  const messages = fileDescriptor.message_type.flatMap((messageDescriptor) =>
+    generateMessage(fileDescriptor, messageDescriptor, options)
+  );
+
+  statements.push(
+    fileDescriptor.dependency
+      .map((dependency) => {
+        if (!fileDescriptor.name) return;
+        if (!fileDescriptor?.package) return;
+
+        const types = messageOrEnumWithPackages.get(fileDescriptor.package);
+        if (!types?.length) return;
+        return `import {${types.join(", ")}} from "${path.relative(
+          path.dirname(fileDescriptor.name),
+          removeFileExtension(dependency, "")
+        )}";`;
+      })
+      .join(EOL)
+  );
+
   if (fileDescriptor.syntax) {
     statements.push(`export const syntax = "${fileDescriptor.syntax}";`);
   }
@@ -87,26 +112,9 @@ export const generateFile = (
       `export const protocolBufferPackage = "${fileDescriptor.package}";`
     );
   }
-  statements.push(
-    fileDescriptor.dependency
-      .map((dependency) => {
-        if (!fileDescriptor.name) return;
-        return `import "${path.relative(
-          path.dirname(fileDescriptor.name),
-          removeFileExtension(dependency, "")
-        )}"`;
-      })
-      .join(EOL)
-  );
 
-  statements.push(
-    ...fileDescriptor.enum_type.flatMap((enumDescriptor) =>
-      generateEnum(enumDescriptor, options)
-    ),
-    ...fileDescriptor.message_type.flatMap((messageDescriptor) =>
-      generateMessage(fileDescriptor, messageDescriptor, options)
-    )
-  );
+  statements.push(...enums, ...messages);
+
   return prettier.format(statements.join(EOL), {
     parser: "typescript",
   });
