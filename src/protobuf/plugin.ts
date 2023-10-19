@@ -300,7 +300,16 @@ function createBaseCodeGeneratorRequest(): CodeGeneratorRequest {
   };
 }
 
-export const CodeGeneratorRequest = {
+type MessageCodeGeneratorRequest = {
+  encode(message: CodeGeneratorRequest, writer: _m0.Writer): _m0.Writer;
+  decode(input: _m0.Reader | Uint8Array, length?: number): CodeGeneratorRequest;
+  fromJSON(object: any): CodeGeneratorRequest;
+  toJSON(message: CodeGeneratorRequest): unknown;
+  create<I extends Exact<DeepPartial<CodeGeneratorRequest>, I>>(base?: I): CodeGeneratorRequest;
+  fromPartial<I extends Exact<DeepPartial<CodeGeneratorRequest>, I>>(object: I): CodeGeneratorRequest;
+}
+
+export const CodeGeneratorRequest: MessageCodeGeneratorRequest = {
   encode(message: CodeGeneratorRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     for (const v of message.file_to_generate) {
       writer.uint32(10).string(v!);

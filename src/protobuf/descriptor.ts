@@ -1875,7 +1875,15 @@ function createBaseFileDescriptorSet(): FileDescriptorSet {
   return { file: [] };
 }
 
-export const FileDescriptorSet = {
+type MessageFileDescriptorSet = {
+  encode(message: FileDescriptorSet, writer: _m0.Writer): _m0.Writer;
+  decode(input: _m0.Reader | Uint8Array, length?: number): FileDescriptorSet;
+  fromJSON(object: any): FileDescriptorSet;
+  toJSON(message: FileDescriptorSet): unknown;
+  create<I extends Exact<DeepPartial<FileDescriptorSet>, I>>(base?: I): FileDescriptorSet;
+  fromPartial<I extends Exact<DeepPartial<FileDescriptorSet>, I>>(object: I): FileDescriptorSet;
+};
+export const FileDescriptorSet: MessageFileDescriptorSet = {
   encode(message: FileDescriptorSet, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     for (const v of message.file) {
       FileDescriptorProto.encode(v!, writer.uint32(10).fork()).ldelim();
@@ -1948,7 +1956,16 @@ function createBaseFileDescriptorProto(): FileDescriptorProto {
   };
 }
 
-export const FileDescriptorProto = {
+type MessageFileDescriptorProto = {
+  encode(message: FileDescriptorProto, writer: _m0.Writer): _m0.Writer;
+  decode(input: _m0.Reader | Uint8Array, length?: number): FileDescriptorProto;
+  fromJSON(object: any): FileDescriptorProto;
+  toJSON(message: FileDescriptorProto): unknown;
+  create<I extends Exact<DeepPartial<FileDescriptorProto>, I>>(base?: I): FileDescriptorProto;
+  fromPartial<I extends Exact<DeepPartial<FileDescriptorProto>, I>>(object: I): FileDescriptorProto;
+};
+
+export const FileDescriptorProto: MessageFileDescriptorProto = {
   encode(message: FileDescriptorProto, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.name && message.name !== "") {
       writer.uint32(10).string(message.name);
@@ -2240,7 +2257,15 @@ function createBaseDescriptorProto(): DescriptorProto {
   };
 }
 
-export const DescriptorProto = {
+type MessageDescriptorProto = {
+  encode(message: DescriptorProto, writer: _m0.Writer): _m0.Writer;
+  decode(input: _m0.Reader | Uint8Array, length?: number): DescriptorProto;
+  fromJSON(object: any): DescriptorProto;
+  toJSON(message: DescriptorProto): unknown;
+  create<I extends Exact<DeepPartial<DescriptorProto>, I>>(base?: I): DescriptorProto;
+  fromPartial<I extends Exact<DeepPartial<DescriptorProto>, I>>(object: I): DescriptorProto;
+};
+export const DescriptorProto: MessageDescriptorProto = {
   encode(message: DescriptorProto, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.name !== "") {
       writer.uint32(10).string(message.name);
