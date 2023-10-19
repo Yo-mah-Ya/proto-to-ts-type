@@ -89,7 +89,7 @@ export const generateMessage = (
   const literalNode = descriptorProto.field.map((fieldDescriptor) => {
     const oneOfIndex = fieldDescriptor.oneof_index;
     if (
-      typeof oneOfIndex === "number" &&
+      descriptorProto.oneof_decl.length &&
       !fieldDescriptor.proto3_optional &&
       !processedOneOfIndex.has(oneOfIndex)
     ) {
