@@ -1,4 +1,4 @@
 protoc \
-    --plugin="./build/src/protoc-gen-index" \
-    --index_out=. \
+    --plugin="./build/src/protoc-gen-ts-type" \
+    --ts-type_out=. \
     $1
