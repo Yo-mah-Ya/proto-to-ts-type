@@ -17,7 +17,7 @@ yarn add --dev proto-to-ts-type
 
 ```sh
 protoc \
-  --plugin="./build/src/protoc-gen-ts-type" \
+  --plugin="./node_modules/.bin/protoc-gen-ts-type" \
   --ts-type_out=. \
   proto.proto
 ```
@@ -28,9 +28,9 @@ For example, If you'd like to generate `json_name` defined in protofiles as TS t
 
 Each the pair of key and value is supposed to be delimited by equal sign `=`, and comma `,` for each parameters.
 
-```
+```sh
 protoc \
-  --plugin="./build/src/protoc-gen-ts-type" \
+  --plugin="./node_modules/.bin/protoc-gen-ts-type" \
   --ts-type_out=. \
   --ts-type_opt=useJsonName=true,enumValueAsString=true \
   proto.proto
