@@ -1,6 +1,6 @@
 {
   "name": "proto-to-ts-type",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "proto-to-ts-type",
   "author": "yoshinari-yamanaka",
   "license": "MIT",
@@ -8,6 +8,9 @@
   "files": [
     "build"
   ],
+  "repository": {
+    "url": "https://github.com/Yo-mah-Ya/proto-to-ts-type.git"
+  },
   "keywords": [
     "proto",
     "protoc",
