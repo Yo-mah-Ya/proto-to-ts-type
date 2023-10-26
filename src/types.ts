@@ -1,4 +1,5 @@
 import {
+  DescriptorProto,
   FieldDescriptorProto,
   FieldDescriptorProto_Label,
   FieldDescriptorProto_Type,
@@ -15,10 +16,22 @@ export const isRequired = (fieldDescriptor: FieldDescriptorProto): boolean =>
 export const isRepeated = (fieldDescriptor: FieldDescriptorProto): boolean =>
   fieldDescriptor.label === FieldDescriptorProto_Label.LABEL_REPEATED;
 
-export const toTypeName = (
-  fieldDescriptor: FieldDescriptorProto,
-  fileDescriptorProto: FileDescriptorProto,
-): string => {
+export const hasOneOf = (descriptorProto: DescriptorProto): boolean =>
+  descriptorProto.oneof_decl.length > 0;
+
+export const isMessage = (
+  fieldDescriptorProto: FieldDescriptorProto,
+): boolean =>
+  fieldDescriptorProto.type === FieldDescriptorProto_Type.TYPE_MESSAGE ||
+  fieldDescriptorProto.type === FieldDescriptorProto_Type.TYPE_GROUP;
+
+export const toTypeName = ({
+  fieldDescriptor,
+  fileDescriptorProto,
+}: {
+  fieldDescriptor: FieldDescriptorProto;
+  fileDescriptorProto: FileDescriptorProto;
+}): string => {
   switch (fieldDescriptor.type) {
     case FieldDescriptorProto_Type.TYPE_DOUBLE:
     case FieldDescriptorProto_Type.TYPE_FLOAT:
@@ -57,4 +70,19 @@ export const toTypeName = (
       return isRepeated(fieldDescriptor) ? `${typeName}[]` : typeName;
     }
   }
+};
+
+export const toOptional = ({
+  fieldDescriptor,
+}: {
+  fieldDescriptor: FieldDescriptorProto;
+}): "?" | "" => {
+  if (
+    fieldDescriptor.proto3_optional ||
+    (isMessage(fieldDescriptor) && !isRepeated(fieldDescriptor))
+  ) {
+    return "?";
+  }
+
+  return "";
 };

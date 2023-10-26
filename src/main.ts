@@ -5,7 +5,7 @@ import {
   FileDescriptorProto,
 } from "./protobuf/descriptor";
 import { getFieldName, getMessageOrEnumWithPackages } from "./field";
-import { toTypeName } from "./types";
+import { toOptional, toTypeName } from "./types";
 import { EOL } from "os";
 import prettier from "prettier";
 import type { Option } from "./option";
@@ -13,59 +13,80 @@ import { comments } from "./comments";
 import path from "path";
 import { removeFileExtension } from "./util";
 
-const createField = (
+const getFieldSet = (
   {
-    fileDescriptor,
+    fileDescriptorProto,
     fieldDescriptor,
   }: {
-    fileDescriptor: FileDescriptorProto;
+    fileDescriptorProto: FileDescriptorProto;
     fieldDescriptor: FieldDescriptorProto;
   },
   options: Option,
-): string => {
+): {
+  comment: string;
+  fieldName: string;
+  optionalSign: string;
+  fieldType: string;
+} => {
   const comment = comments(fieldDescriptor.options?.deprecated);
-  const fieldType = toTypeName(fieldDescriptor, fileDescriptor);
+  const fieldType = toTypeName({
+    fieldDescriptor,
+    fileDescriptorProto,
+  });
   const fieldName = getFieldName(fieldDescriptor, options);
-  return `${comment}readonly ${fieldName}?: ${fieldType};`;
+  const optionalSign = toOptional({ fieldDescriptor });
+  return {
+    comment,
+    fieldName,
+    optionalSign,
+    fieldType,
+  };
 };
 
 const createOneOfField = (
   {
-    fileDescriptor,
+    fileDescriptorProto,
     descriptorProto,
     oneOfIndex,
   }: {
-    fileDescriptor: FileDescriptorProto;
+    fileDescriptorProto: FileDescriptorProto;
     descriptorProto: DescriptorProto;
     oneOfIndex: number;
   },
+  typeGuardFuncsForOneOf: string[],
   options: Option,
 ): string => {
   const fields = descriptorProto.field.filter(
     (field) => field.oneof_index === oneOfIndex,
   );
+  const oneOfName = descriptorProto.oneof_decl[oneOfIndex].name;
   const unionType = fields
     .map((f) => {
-      const fieldName = getFieldName(f, options);
-      const field = createField(
-        {
-          fileDescriptor,
-          fieldDescriptor: f,
-        },
+      const { comment, fieldName, fieldType } = getFieldSet(
+        { fileDescriptorProto, fieldDescriptor: f },
         options,
       );
-      return `{ readonly $oneOfField: '${fieldName}', ${field} }`;
+      const variableName = `is${
+        fieldName.charAt(0).toUpperCase() + fieldName.slice(1)
+      }Of${oneOfName}Of${descriptorProto.name}`;
+      typeGuardFuncsForOneOf.push(`
+      export const ${variableName} = (v: ${descriptorProto.name}["${oneOfName}"]): v is { $oneOfField: "${fieldName}"; ${fieldName}: ${fieldType} } =>
+        v.$oneOfField === "${fieldName}";
+      `);
+      return `{ ${comment}readonly $oneOfField: '${fieldName}', ${fieldName}: ${fieldType} }`;
     })
     .join(" | ");
-  const oneOfName = descriptorProto.oneof_decl[oneOfIndex].name;
   return `readonly ${oneOfName}: ${unionType}`;
 };
 
 export const generateMessage = (
   {
-    fileDescriptor,
+    fileDescriptorProto,
     descriptorProto,
-  }: { fileDescriptor: FileDescriptorProto; descriptorProto: DescriptorProto },
+  }: {
+    fileDescriptorProto: FileDescriptorProto;
+    descriptorProto: DescriptorProto;
+  },
   options: Option,
 ): string => {
   const chunks: string[] = [];
@@ -76,7 +97,7 @@ export const generateMessage = (
     chunks.push(
       generateMessage(
         {
-          fileDescriptor,
+          fileDescriptorProto,
           descriptorProto: nestedDescriptorProto,
         },
         options,
@@ -86,21 +107,36 @@ export const generateMessage = (
 
   const processedOneOfIndex = new Set<number>();
 
-  const literalNode = descriptorProto.field.map((fieldDescriptor) => {
+  const literalNode: string[] = [];
+  const typeGuardFuncsForOneOf: string[] = [];
+
+  for (const fieldDescriptor of descriptorProto.field) {
     const oneOfIndex = fieldDescriptor.oneof_index;
     if (
       descriptorProto.oneof_decl.length &&
       !fieldDescriptor.proto3_optional &&
-      !processedOneOfIndex.has(oneOfIndex)
+      !processedOneOfIndex.has(oneOfIndex) &&
+      options.useTypeGuardForOneOf
     ) {
       processedOneOfIndex.add(oneOfIndex);
-      return createOneOfField(
-        { fileDescriptor, descriptorProto, oneOfIndex },
-        options,
+      literalNode.push(
+        createOneOfField(
+          { fileDescriptorProto, descriptorProto, oneOfIndex },
+          typeGuardFuncsForOneOf,
+          options,
+        ),
       );
     }
-    return createField({ fileDescriptor, fieldDescriptor }, options);
-  });
+    if (processedOneOfIndex.has(oneOfIndex)) continue;
+
+    const { comment, fieldName, optionalSign, fieldType } = getFieldSet(
+      { fileDescriptorProto, fieldDescriptor },
+      options,
+    );
+    literalNode.push(
+      `${comment}readonly ${fieldName}${optionalSign}: ${fieldType};`,
+    );
+  }
 
   const comment = comments(descriptorProto.options?.deprecated);
   if (literalNode.length) {
@@ -112,6 +148,8 @@ export const generateMessage = (
   } else {
     chunks.push(`${comment}export interface ${descriptorProto.name}{${EOL}};`);
   }
+
+  chunks.push(...typeGuardFuncsForOneOf);
   return chunks.join(EOL);
 };
 
@@ -134,46 +172,47 @@ export const generateEnum = (
 };
 
 export const generateFile = (
-  fileDescriptor: FileDescriptorProto,
+  fileDescriptorProto: FileDescriptorProto,
   options: Option,
 ): Promise<string> => {
   const statements: string[] = ["/* eslint-disable */"];
 
-  const enums = fileDescriptor.enum_type.flatMap((enumDescriptor) =>
+  const enums = fileDescriptorProto.enum_type.flatMap((enumDescriptor) =>
     generateEnum(enumDescriptor, options),
   );
-  const messages = fileDescriptor.message_type.flatMap((messageDescriptor) =>
-    generateMessage(
-      {
-        fileDescriptor,
-        descriptorProto: messageDescriptor,
-      },
-      options,
-    ),
+  const messages = fileDescriptorProto.message_type.flatMap(
+    (messageDescriptor) =>
+      generateMessage(
+        {
+          fileDescriptorProto,
+          descriptorProto: messageDescriptor,
+        },
+        options,
+      ),
   );
 
   statements.push(
-    fileDescriptor.dependency
+    fileDescriptorProto.dependency
       .map((dependency) => {
-        if (!fileDescriptor.name) return;
-        if (!fileDescriptor?.package) return;
+        if (!fileDescriptorProto.name) return;
+        if (!fileDescriptorProto?.package) return;
 
-        const types = getMessageOrEnumWithPackages(fileDescriptor.package);
+        const types = getMessageOrEnumWithPackages(fileDescriptorProto.package);
         if (!types?.length) return;
         return `import {${types.join(", ")}} from "${path.relative(
-          path.dirname(fileDescriptor.name),
+          path.dirname(fileDescriptorProto.name),
           removeFileExtension(dependency, ""),
         )}";`;
       })
       .join(EOL),
   );
 
-  if (fileDescriptor.syntax) {
-    statements.push(`export const syntax = "${fileDescriptor.syntax}";`);
+  if (fileDescriptorProto.syntax) {
+    statements.push(`export const syntax = "${fileDescriptorProto.syntax}";`);
   }
-  if (fileDescriptor.package) {
+  if (fileDescriptorProto.package) {
     statements.push(
-      `export const protocolBufferPackage = "${fileDescriptor.package}";`,
+      `export const protocolBufferPackage = "${fileDescriptorProto.package}";`,
     );
   }
 
