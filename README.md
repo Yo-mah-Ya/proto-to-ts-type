@@ -40,10 +40,11 @@ protoc \
 
 Check in `src/option.ts`.
 
-| key               | value          |                                                                                  |
-| ----------------- | -------------- | -------------------------------------------------------------------------------- |
-| useJsonName       | `true`/`false` | `json_name` in a proto file would be used.                                       |
-| enumValueAsString | `true`/`false` | Enum value would be same as member names instead of numbers, which starts with 0 |
+| key                  | value          |                                                                                  |
+| -------------------- | -------------- | -------------------------------------------------------------------------------- |
+| useJsonName          | `true`/`false` | `json_name` in a proto file would be used.                                       |
+| enumValueAsString    | `true`/`false` | Enum value would be same as member names instead of numbers, which starts with 0 |
+| useTypeGuardForOneOf | `true`/`false` | If true, add `type guard functions` for oneof operation, or optional properties. |
 
 ## The mapping rules of proto to TypeScript types
 
