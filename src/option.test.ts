@@ -1,34 +1,36 @@
 import { toOptions } from "./option";
 
 describe(toOptions, () => {
+  const defaultOption = {
+    useJsonName: false,
+    enumValueAsString: false,
+    useTypeGuardForOneOf: false,
+  };
   test("no option", () => {
-    expect(toOptions("")).toStrictEqual({
-      useJsonName: false,
-      enumValueAsString: false,
-    });
+    expect(toOptions("")).toStrictEqual(defaultOption);
   });
   describe("unparsable", () => {
     test("delimited by other than comma", () => {
       const warnLog = jest.spyOn(console, "warn");
       expect(
         toOptions("useJsonName=true:enumValueAsString=true"),
-      ).toStrictEqual({
-        useJsonName: false,
-        enumValueAsString: false,
-      });
+      ).toStrictEqual(defaultOption);
       expect(warnLog).toHaveBeenCalled();
     });
 
     test("not delimited by equal sign", () => {
       const warnLog = jest.spyOn(console, "warn");
-      expect(toOptions("useJsonName")).toStrictEqual({
-        useJsonName: false,
-        enumValueAsString: false,
-      });
+      expect(toOptions("useJsonName")).toStrictEqual(defaultOption);
       expect(warnLog).toHaveBeenCalled();
     });
   });
 
+  test("unknown parameter", () => {
+    expect(toOptions("key=value")).toStrictEqual(defaultOption);
+  });
+});
+
+describe("individual options", () => {
   test("useJsonName", () => {
     expect(toOptions("useJsonName=false")).toHaveProperty("useJsonName", false);
     expect(toOptions("useJsonName=true")).toHaveProperty("useJsonName", true);
@@ -54,10 +56,20 @@ describe(toOptions, () => {
     expect(warnLog).toHaveBeenCalled();
   });
 
-  test("unknown parameter", () => {
-    expect(toOptions("key=value")).toStrictEqual({
-      useJsonName: false,
-      enumValueAsString: false,
-    });
+  test("useTypeGuardForOneOf", () => {
+    expect(toOptions("useTypeGuardForOneOf=false")).toHaveProperty(
+      "useTypeGuardForOneOf",
+      false,
+    );
+    expect(toOptions("useTypeGuardForOneOf=true")).toHaveProperty(
+      "useTypeGuardForOneOf",
+      true,
+    );
+    const warnLog = jest.spyOn(console, "warn");
+    expect(toOptions("useTypeGuardForOneOf=dummy")).toHaveProperty(
+      "useTypeGuardForOneOf",
+      false,
+    );
+    expect(warnLog).toHaveBeenCalled();
   });
 });

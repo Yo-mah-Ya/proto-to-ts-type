@@ -3,12 +3,14 @@ import { EOL } from "os";
 export type Option = {
   useJsonName: boolean;
   enumValueAsString: boolean;
+  useTypeGuardForOneOf: boolean;
 };
 
 export const toOptions = (parameters: string): Option => {
   const defaultOption: Option = {
     useJsonName: false,
     enumValueAsString: false,
+    useTypeGuardForOneOf: false,
   };
   if (parameters === "") {
     return defaultOption;
@@ -45,6 +47,15 @@ export const toOptions = (parameters: string): Option => {
         }
         continue;
       }
+      case "useTypeGuardForOneOf":
+        if (["true", "false"].includes(value)) {
+          defaultOption.useTypeGuardForOneOf = "true" === value;
+        } else {
+          console.warn(
+            '"useTypeGuardForOneOf" option must be either "true" or "false"',
+          );
+        }
+        continue;
       default:
         continue;
     }

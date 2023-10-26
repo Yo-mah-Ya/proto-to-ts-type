@@ -13,7 +13,7 @@ import { comments } from "./comments";
 import path from "path";
 import { removeFileExtension } from "./util";
 
-const createField = (
+const getFieldSet = (
   {
     fileDescriptorProto,
     fieldDescriptor,
@@ -22,7 +22,12 @@ const createField = (
     fieldDescriptor: FieldDescriptorProto;
   },
   options: Option,
-): string => {
+): {
+  comment: string;
+  fieldName: string;
+  optionalSign: string;
+  fieldType: string;
+} => {
   const comment = comments(fieldDescriptor.options?.deprecated);
   const fieldType = toTypeName({
     fieldDescriptor,
@@ -30,7 +35,12 @@ const createField = (
   });
   const fieldName = getFieldName(fieldDescriptor, options);
   const optionalSign = toOptional({ fieldDescriptor });
-  return `${comment}readonly ${fieldName}${optionalSign}: ${fieldType};`;
+  return {
+    comment,
+    fieldName,
+    optionalSign,
+    fieldType,
+  };
 };
 
 const createOneOfField = (
@@ -43,22 +53,29 @@ const createOneOfField = (
     descriptorProto: DescriptorProto;
     oneOfIndex: number;
   },
+  typeGuardFuncsForOneOf: string[],
   options: Option,
 ): string => {
   const fields = descriptorProto.field.filter(
     (field) => field.oneof_index === oneOfIndex,
   );
+  const oneOfName = descriptorProto.oneof_decl[oneOfIndex].name;
   const unionType = fields
     .map((f) => {
-      const fieldName = getFieldName(f, options);
-      const fieldType = toTypeName({
-        fieldDescriptor: f,
-        fileDescriptorProto,
-      });
-      return `{ readonly $oneOfField: '${fieldName}', ${fieldName}: ${fieldType} }`;
+      const { comment, fieldName, fieldType } = getFieldSet(
+        { fileDescriptorProto, fieldDescriptor: f },
+        options,
+      );
+      const variableName = `is${
+        fieldName.charAt(0).toUpperCase() + fieldName.slice(1)
+      }Of${oneOfName}Of${descriptorProto.name}`;
+      typeGuardFuncsForOneOf.push(`
+      export const ${variableName} = (v: ${descriptorProto.name}["${oneOfName}"]): v is { $oneOfField: "${fieldName}"; ${fieldName}: ${fieldType} } =>
+        v.$oneOfField === "${fieldName}";
+      `);
+      return `{ ${comment}readonly $oneOfField: '${fieldName}', ${fieldName}: ${fieldType} }`;
     })
     .join(" | ");
-  const oneOfName = descriptorProto.oneof_decl[oneOfIndex].name;
   return `readonly ${oneOfName}: ${unionType}`;
 };
 
@@ -90,21 +107,36 @@ export const generateMessage = (
 
   const processedOneOfIndex = new Set<number>();
 
-  const literalNode = descriptorProto.field.map((fieldDescriptor) => {
+  const literalNode: string[] = [];
+  const typeGuardFuncsForOneOf: string[] = [];
+
+  for (const fieldDescriptor of descriptorProto.field) {
     const oneOfIndex = fieldDescriptor.oneof_index;
     if (
       descriptorProto.oneof_decl.length &&
       !fieldDescriptor.proto3_optional &&
-      !processedOneOfIndex.has(oneOfIndex)
+      !processedOneOfIndex.has(oneOfIndex) &&
+      options.useTypeGuardForOneOf
     ) {
       processedOneOfIndex.add(oneOfIndex);
-      return createOneOfField(
-        { fileDescriptorProto, descriptorProto, oneOfIndex },
-        options,
+      literalNode.push(
+        createOneOfField(
+          { fileDescriptorProto, descriptorProto, oneOfIndex },
+          typeGuardFuncsForOneOf,
+          options,
+        ),
       );
     }
-    return createField({ fileDescriptorProto, fieldDescriptor }, options);
-  });
+    if (processedOneOfIndex.has(oneOfIndex)) continue;
+
+    const { comment, fieldName, optionalSign, fieldType } = getFieldSet(
+      { fileDescriptorProto, fieldDescriptor },
+      options,
+    );
+    literalNode.push(
+      `${comment}readonly ${fieldName}${optionalSign}: ${fieldType};`,
+    );
+  }
 
   const comment = comments(descriptorProto.options?.deprecated);
   if (literalNode.length) {
@@ -116,6 +148,8 @@ export const generateMessage = (
   } else {
     chunks.push(`${comment}export interface ${descriptorProto.name}{${EOL}};`);
   }
+
+  chunks.push(...typeGuardFuncsForOneOf);
   return chunks.join(EOL);
 };
 
